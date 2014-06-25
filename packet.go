@@ -8,18 +8,18 @@ import (
 
 // contants for natnet packet handling
 const (
-	MAX_PACKETSIZE = 100000
+	maxPACKETSIZE = 100000
 
-	NAT_PING                 = 0
-	NAT_PINGRESPONSE         = 1
-	NAT_REQUEST              = 2
-	NAT_RESPONSE             = 3
-	NAT_REQUEST_MODELDEF     = 4
-	NAT_MODELDEF             = 5
-	NAT_REQUEST_FRAMEOFDATA  = 6
-	NAT_FRAMEOFDATA          = 7
-	NAT_MESSAGESTRING        = 8
-	NAT_UNRECOGNIZED_REQUEST = 100
+	natPING                = 0
+	natPINGRESPONSE        = 1
+	natREQUEST             = 2
+	natRESPONSE            = 3
+	natREQUESTMODELDEF     = 4
+	natMODELDEF            = 5
+	natREQUESTFRAMEOFDATA  = 6
+	natFRAMEOFDATA         = 7
+	natMESSAGESTRING       = 8
+	natUNRECOGNIZEDREQUEST = 100
 )
 
 // Packet in NatNet Protocol
@@ -35,7 +35,7 @@ type Point3f struct {
 	x, y, z float32
 }
 
-// Quaternion4f
+// Quaternion4f holds orientation
 type Quaternion4f struct {
 	qx, qy, qz, qw float32
 }
@@ -53,9 +53,9 @@ type RigidBody struct {
 }
 
 // MarkerSet holds 3d point
-type MarkerSet struct {
-	x, y, z float32
-}
+//type MarkerSet struct {
+//	x, y, z float32
+//}
 
 //Skelton not yet supported
 type Skelton struct {
@@ -113,11 +113,13 @@ func (rb *RigidBody) decode(reader io.Reader) {
 	binary.Read(reader, binary.LittleEndian, &rb.MarkerError)
 }
 
+/*
 func (ms *MarkerSet) decode(reader io.Reader) {
 	binary.Read(reader, binary.LittleEndian, &ms.x)
 	binary.Read(reader, binary.LittleEndian, &ms.y)
 	binary.Read(reader, binary.LittleEndian, &ms.z)
 }
+*/
 
 func (p *Point3f) decode(reader io.Reader) {
 	binary.Read(reader, binary.LittleEndian, &p.x)
@@ -129,21 +131,18 @@ func (mf *MocapFrame) decode(reader io.Reader) {
 	binary.Read(reader, binary.LittleEndian, &mf.frameNumber)
 
 	binary.Read(reader, binary.LittleEndian, &mf.nMarkerSets)
-
 	mf.MarkerSets = make([]Point3f, mf.nMarkerSets)
 	for i := range mf.MarkerSets {
 		mf.MarkerSets[i].decode(reader)
 	}
 
 	binary.Read(reader, binary.LittleEndian, &mf.nMarkerUnidentified)
-
 	mf.MarkerUnidentified = make([]Point3f, mf.nMarkerUnidentified)
 	for i := range mf.MarkerUnidentified {
 		mf.MarkerUnidentified[i].decode(reader)
 	}
 
 	binary.Read(reader, binary.LittleEndian, &mf.nRigidBodies)
-
 	mf.RigidBodies = make([]RigidBody, mf.nRigidBodies)
 	for i := range mf.RigidBodies {
 		mf.RigidBodies[i].decode(reader)
@@ -159,7 +158,6 @@ func (mf *MocapFrame) decode(reader io.Reader) {
 
 	//if 2.3
 	binary.Read(reader, binary.LittleEndian, &mf.timecode)
-
 	//subtimecode
 }
 
@@ -173,10 +171,10 @@ func (p *Packet) decode(reader io.Reader) {
 	switch p.MessageID {
 	default:
 		fmt.Printf("unknown MessageId: %d\n", p.MessageID)
-	case NAT_FRAMEOFDATA:
+	case natFRAMEOFDATA:
 		p.frame = NewFrame()
 		p.frame.decode(reader)
-	case NAT_MODELDEF:
+	case natMODELDEF:
 		//		decodeModel(data)
 	}
 }
@@ -197,21 +195,23 @@ func NewPacket() (packet *Packet) {
 	}
 }
 
-func (f MocapFrame) Format(fs fmt.State, c rune) {
-	fmt.Fprintf(fs, "  FrameNumber: %d\n", f.frameNumber)
-	fmt.Fprintf(fs, "  nMarkerSets: %d\n", f.nMarkerSets)
-	fmt.Fprintf(fs, "  nMarkerSetsUndef: %d\n", f.nMarkerUnidentified)
-	fmt.Fprintf(fs, "  nRigidBodies: %d\n", f.nRigidBodies)
-	for _, v := range f.RigidBodies {
+// Format for MocapFrame
+func (mf MocapFrame) Format(fs fmt.State, c rune) {
+	fmt.Fprintf(fs, "  FrameNumber: %d\n", mf.frameNumber)
+	fmt.Fprintf(fs, "  nMarkerSets: %d\n", mf.nMarkerSets)
+	fmt.Fprintf(fs, "  nMarkerSetsUndef: %d\n", mf.nMarkerUnidentified)
+	fmt.Fprintf(fs, "  nRigidBodies: %d\n", mf.nRigidBodies)
+	for _, v := range mf.RigidBodies {
 		fmt.Fprintf(fs, "  %v\n", v)
 	}
-	fmt.Fprintf(fs, "  nSkelton: %d\n", f.nSkeltons)
-	fmt.Fprintf(fs, "  latency: %f\n", f.latency)
-	fmt.Fprintf(fs, "  timecode: %d\n", f.timecode)
+	fmt.Fprintf(fs, "  nSkelton: %d\n", mf.nSkeltons)
+	fmt.Fprintf(fs, "  latency: %f\n", mf.latency)
+	fmt.Fprintf(fs, "  timecode: %d\n", mf.timecode)
 
 	return
 }
 
+// Format for Packet
 func (p Packet) Format(fs fmt.State, c rune) {
 	fmt.Fprintf(fs, "MessageId: %d\n", p.MessageID)
 	fmt.Fprintf(fs, "Length: %d\n", p.dataLen)
