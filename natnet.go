@@ -1,15 +1,8 @@
-package main
+package natnet
 
 import (
-	"bytes"
 	"errors"
-	"fmt"
-	"log"
 	"net"
-	"os"
-	//hid stream
-	//osc stream
-	//usb serial stream
 )
 
 // NatNet network settings
@@ -19,6 +12,7 @@ var (
 	COMMAND_PORT = 1510
 	DATA_PORT    = 1511
 	BUFFER_SIZE  = 1024
+	VERSION      = 0.0
 )
 
 // NatNetClient protocol receiver
@@ -74,56 +68,4 @@ func (self *NatNetClient) ListenAndDispatch() error {
 		return errors.New("Client is already listning")
 	}
 	return nil
-}
-
-func main() {
-	pdata := make([]byte, BUFFER_SIZE)
-	f, err := os.Open("payload.pcap")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer f.Close()
-
-	n, err := f.Read(pdata)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("data: ", n)
-	//r := bufio.NewReader(bytes.NewBuffer(pdata))
-	r := bytes.NewBuffer(pdata)
-
-	p := NewPacket()
-	p.decode(r)
-	fmt.Println(p)
-
-	fmt.Printf("natnet client\n")
-	//client := newNatNetClient("127.0.0.1", 9999)
-	//client.addHandler()
-
-	//client.ListenAndDispatch()
-
-	addr, err := net.ResolveUDPAddr("udp4", fmt.Sprint(MCAST_GRP, ":", DATA_PORT))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	conn, err := net.ListenMulticastUDP("udp", nil, addr)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer conn.Close()
-
-	for {
-		buf := make([]byte, BUFFER_SIZE)
-		n, _, err := conn.ReadFromUDP(buf)
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Println("server read:", n)
-
-		p := NewPacket()
-		//p.decode(bufio.NewReader(bytes.NewBuffer(buf)))
-		p.decode(bytes.NewBuffer(buf))
-		fmt.Println(p)
-	}
 }

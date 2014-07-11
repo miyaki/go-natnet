@@ -1,4 +1,4 @@
-package main
+package natnet
 
 import (
 	"encoding/binary"
@@ -8,6 +8,7 @@ import (
 
 // contants for natnet packet handling
 const (
+	maxNAMELENGTH = 256
 	maxPACKETSIZE = 100000
 
 	natPING                = 0
@@ -59,6 +60,9 @@ type RigidBody struct {
 
 //Skelton not yet supported
 type Skelton struct {
+	ID           int32
+	nRigidBodies int32
+	RigidBodies  []RigidBody
 }
 
 //type LabeledMarker
@@ -81,7 +85,7 @@ type MocapFrame struct {
 
 //interface PacketReader
 
-func (rb *RigidBody) decode(reader io.Reader) {
+func (rb *RigidBody) Decode(reader io.Reader) {
 	binary.Read(reader, binary.LittleEndian, &rb.ID)
 
 	binary.Read(reader, binary.LittleEndian, &rb.p.x)
@@ -97,10 +101,10 @@ func (rb *RigidBody) decode(reader io.Reader) {
 
 	rb.MarkerData = make([]Point3f, rb.nRigidMarkers)
 	for i := range rb.MarkerData {
-		rb.MarkerData[i].decode(reader)
+		rb.MarkerData[i].Decode(reader)
 	}
 
-	//if Major >=2
+	//if VERSION >=2.0
 	rb.MarkerID = make([]uint32, rb.nRigidMarkers)
 	for i := range rb.MarkerID {
 		binary.Read(reader, binary.LittleEndian, &rb.MarkerID[i])
@@ -110,58 +114,98 @@ func (rb *RigidBody) decode(reader io.Reader) {
 		binary.Read(reader, binary.LittleEndian, &rb.MarkerSize[i])
 	}
 
+	//if VERSION >= 2.6
+	{
+		//binary.Read(read, binary.LittleEndian, &rb.params)
+		//bTrackingValid := rb.params & 0x01
+	}
+
 	binary.Read(reader, binary.LittleEndian, &rb.MarkerError)
 }
 
+func (s *Skelton) Decode(reader io.Reader) {
+
+}
+
 /*
-func (ms *MarkerSet) decode(reader io.Reader) {
+func (ms *MarkerSet) Decode(reader io.Reader) {
 	binary.Read(reader, binary.LittleEndian, &ms.x)
 	binary.Read(reader, binary.LittleEndian, &ms.y)
 	binary.Read(reader, binary.LittleEndian, &ms.z)
 }
 */
 
-func (p *Point3f) decode(reader io.Reader) {
+func (p *Point3f) Decode(reader io.Reader) {
 	binary.Read(reader, binary.LittleEndian, &p.x)
 	binary.Read(reader, binary.LittleEndian, &p.y)
 	binary.Read(reader, binary.LittleEndian, &p.z)
 }
 
-func (mf *MocapFrame) decode(reader io.Reader) {
+func (mf *MocapFrame) Decode(reader io.Reader) {
 	binary.Read(reader, binary.LittleEndian, &mf.frameNumber)
 
 	binary.Read(reader, binary.LittleEndian, &mf.nMarkerSets)
 	mf.MarkerSets = make([]Point3f, mf.nMarkerSets)
 	for i := range mf.MarkerSets {
-		mf.MarkerSets[i].decode(reader)
+		mf.MarkerSets[i].Decode(reader)
 	}
 
 	binary.Read(reader, binary.LittleEndian, &mf.nMarkerUnidentified)
 	mf.MarkerUnidentified = make([]Point3f, mf.nMarkerUnidentified)
 	for i := range mf.MarkerUnidentified {
-		mf.MarkerUnidentified[i].decode(reader)
+		mf.MarkerUnidentified[i].Decode(reader)
 	}
 
 	binary.Read(reader, binary.LittleEndian, &mf.nRigidBodies)
 	mf.RigidBodies = make([]RigidBody, mf.nRigidBodies)
 	for i := range mf.RigidBodies {
-		mf.RigidBodies[i].decode(reader)
+		mf.RigidBodies[i].Decode(reader)
 	}
 
-	// if 2.1
+	// if VERSION >= 2.1
 	binary.Read(reader, binary.LittleEndian, &mf.nSkeltons)
+	mf.Skeltons = make([]Skelton, mf.nSkeltons)
+	for i := range mf.Skeltons {
+		mf.Skeltons[i].Decode(reader)
+	}
 
-	//if 2.3
+	//if VERSION >= 2.3
 	//labeled markers
+	{
+		//id
+		//pos
+		//size
+
+		//if >= 2.6
+		{
+			//marker params
+		}
+	}
 
 	binary.Read(reader, binary.LittleEndian, &mf.latency)
 
-	//if 2.3
 	binary.Read(reader, binary.LittleEndian, &mf.timecode)
-	//subtimecode
+	hour := (mf.timecode >> 24) & 0xff
+	minute := (mf.timecode >> 16) & 0xff
+	second := (mf.timecode >> 8) & 0xff
+	frame := mf.timecode & 0xff
+	fmt.Println("%d:%d:%d:%d", hour, minute, second, frame)
+
+	//if >= 2.3
+	//subtimecodesub
+	//binary.Read(reader, binary.LittleEndian, &mf.timecodesub)
+
+	//if >= 2.6
+	//timstamp
+	//binary.Read(reader, binary.LittleEndian, &mf.timestamp) // int32
+	//frameparams
+	//binary.Read(reader, binary.LittleEndian, &mf.params) // int16
+	//bIsRecording          := mf.params & 0x01
+	//bTrackedModeIsChanged := mf.params & 0x02
+
 }
 
-func (p *Packet) decode(reader io.Reader) {
+func (p *Packet) Decode(reader io.Reader) {
 	p.MessageID = int16(0)
 	binary.Read(reader, binary.LittleEndian, &p.MessageID)
 
@@ -173,7 +217,7 @@ func (p *Packet) decode(reader io.Reader) {
 		fmt.Printf("unknown MessageId: %d\n", p.MessageID)
 	case natFRAMEOFDATA:
 		p.frame = NewFrame()
-		p.frame.decode(reader)
+		p.frame.Decode(reader)
 	case natMODELDEF:
 		//		decodeModel(data)
 	}
