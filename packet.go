@@ -83,8 +83,9 @@ type MocapFrame struct {
 	//subtimecode       uint32
 }
 
-//interface PacketReader
+//TODO: interface PacketReader
 
+// Decode for RigidBody
 func (rb *RigidBody) Decode(reader io.Reader) {
 	binary.Read(reader, binary.LittleEndian, &rb.ID)
 
@@ -123,6 +124,7 @@ func (rb *RigidBody) Decode(reader io.Reader) {
 	binary.Read(reader, binary.LittleEndian, &rb.MarkerError)
 }
 
+// Decode for Skelton
 func (s *Skelton) Decode(reader io.Reader) {
 
 }
@@ -135,12 +137,14 @@ func (ms *MarkerSet) Decode(reader io.Reader) {
 }
 */
 
+// Decode for Point3f
 func (p *Point3f) Decode(reader io.Reader) {
 	binary.Read(reader, binary.LittleEndian, &p.x)
 	binary.Read(reader, binary.LittleEndian, &p.y)
 	binary.Read(reader, binary.LittleEndian, &p.z)
 }
 
+// Decode for MocapFrame
 func (mf *MocapFrame) Decode(reader io.Reader) {
 	binary.Read(reader, binary.LittleEndian, &mf.frameNumber)
 
@@ -179,6 +183,12 @@ func (mf *MocapFrame) Decode(reader io.Reader) {
 		//if >= 2.6
 		{
 			//marker params
+			//param
+			//binary.Read(reader, binary.LittleEndian, &mf.)
+
+			//bOccluded
+			//bPCSolved
+			//bModelSolved
 		}
 	}
 
@@ -205,6 +215,7 @@ func (mf *MocapFrame) Decode(reader io.Reader) {
 
 }
 
+// Decode for Packet
 func (p *Packet) Decode(reader io.Reader) {
 	p.MessageID = int16(0)
 	binary.Read(reader, binary.LittleEndian, &p.MessageID)

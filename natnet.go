@@ -24,6 +24,8 @@ type NatNetClient struct {
 	conn       *net.UDPConn
 }
 
+// TODO for alt interface to bind multicast socket
+
 // Dispatcher dispatches message
 type Dispatcher struct {
 	handlers map[string]Handler
@@ -63,8 +65,8 @@ func (client *NatNetClient) Close() error {
 //}
 
 // ListenAndDispatch handles packet
-func (self *NatNetClient) ListenAndDispatch() error {
-	if self.running {
+func (client *NatNetClient) ListenAndDispatch() error {
+	if client.running {
 		return errors.New("Client is already listning")
 	}
 	return nil

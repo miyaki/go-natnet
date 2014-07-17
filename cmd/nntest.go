@@ -7,10 +7,11 @@ import (
 	"log"
 	"net"
 	"os"
-	//osc stream
+	//osc stream for forwarding
 )
 
 func main() {
+	//static test from captured packet
 	pdata := make([]byte, BUFFER_SIZE)
 	f, err := os.Open("payload.pcap")
 	if err != nil {
@@ -33,10 +34,6 @@ func main() {
 	fmt.Printf("natnet client\n")
 
 	////////////////////////////////////////////////////////////////////////////////////
-	//client := newNatNetClient("127.0.0.1", 9999)
-	//client.addHandler()
-
-	//client.ListenAndDispatch()
 
 	addr, err := net.ResolveUDPAddr("udp4", fmt.Sprint(MCAST_GRP, ":", DATA_PORT))
 	if err != nil {
